@@ -436,11 +436,11 @@ export default function DiaryPage() {
             onSubmit={handleSubmit} 
             className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto flex flex-col"
           >
-            <h2 className="text-xl font-bold mb-4 text-amber-600 sticky top-0 bg-white py-2 z-10">新增日记</h2>
+            <h2 className="text-xl font-bold mb-4 text-amber-600 sticky top-0 bg-white py-2 z-10">留下碎碎念</h2>
             <div className="flex-grow overflow-y-auto pr-2">
               <textarea
                 className="w-full p-2 border border-amber-200 rounded mb-4 text-gray-800"
-                placeholder="请输入日记内容"
+                placeholder="在干嘛，么么么"
                 value={content}
                 onChange={e => setContent(e.target.value)}
                 rows={4}
