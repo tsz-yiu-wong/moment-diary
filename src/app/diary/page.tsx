@@ -138,15 +138,29 @@ export default function DiaryPage() {
     
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No active session');
+      }
+
+      // 更新用户元数据中的昵称
+      const { error: updateError } = await supabase.auth.updateUser({
         data: { nickname: newNickname }
       });
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      // 更新用户表中的昵称
+      const { error: userUpdateError } = await supabase
+        .from('users')
+        .update({ nickname: newNickname })
+        .eq('id', session.user.id);
+
+      if (userUpdateError) throw userUpdateError;
 
       setUserNickname(newNickname);
       setShowNicknameForm(false);
-      await fetchDiaries(); 
+      await fetchDiaries(); // 重新获取日记列表以更新显示
     } catch (error) {
       console.error('Error updating nickname:', error);
     } finally {
