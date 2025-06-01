@@ -31,6 +31,7 @@ export default function DiaryPage() {
   const [loading, setLoading] = useState(false);
   const [userNickname, setUserNickname] = useState("");
   const [newNickname, setNewNickname] = useState("");
+  const [timeUntilMeeting, setTimeUntilMeeting] = useState({ days: 0, hours: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentTime, setCurrentTime] = useState({ beijing: "", italy: "" });
   const [showImagePreview, setShowImagePreview] = useState(false);
@@ -122,15 +123,37 @@ export default function DiaryPage() {
   useEffect(() => {
     checkUser();
     fetchDiaries();
+    
     const updateTime = () => {
       const now = new Date();
       const beijingTime = now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Shanghai" });
       const italyTime = now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
       setCurrentTime({ beijing: beijingTime, italy: italyTime });
+
+      // 计算距离见面的时间（精确到小时）
+      const meetingDate = new Date('2025-06-11T12:00:00+08:00');
+      const diffTime = meetingDate.getTime() - now.getTime();
+      const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      setTimeUntilMeeting({ days, hours });
     };
+
+    // 立即执行一次
     updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
+
+    // 计算距离下一个整分钟的毫秒数
+    const now = new Date();
+    const delay = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+
+    // 设置定时器，在下一个整分钟开始时执行
+    const timeoutId = setTimeout(() => {
+      updateTime();
+      // 之后每分钟执行一次
+      const intervalId = setInterval(updateTime, 60000);
+      return () => clearInterval(intervalId);
+    }, delay);
+
+    return () => clearTimeout(timeoutId);
   }, [checkUser, fetchDiaries]);
 
   const handleUpdateNickname = async () => {
@@ -358,7 +381,7 @@ export default function DiaryPage() {
 
   return (
     <div className="min-h-screen bg-amber-50 p-4">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-2">
         <div className="w-24"></div>
         <h1 className="text-2xl font-bold text-amber-600 text-center">碎碎念</h1>
         <button
@@ -371,9 +394,16 @@ export default function DiaryPage() {
           {userNickname || '设置昵称'}
         </button>
       </div>
-      <div className="flex justify-between text-sm text-amber-700 mb-4">
+      <div className="flex justify-between text-sm text-amber-700 mb-2">
         <span>北京时间: {currentTime.beijing}</span>
         <span>意大利时间: {currentTime.italy}</span>
+      </div>
+      <div className="bg-gradient-to-r from-amber-200 via-amber-100 to-amber-200 rounded-lg shadow p-2 mb-4 border border-amber-200">
+        <div className="text-center">
+          <p className="text-amber-600">
+            距离见面还有 <span className="text-3xl font-bold text-amber-500 mx-1">{timeUntilMeeting.days}</span>天 <span className="text-3xl font-bold text-amber-500 mx-1">{timeUntilMeeting.hours}</span>小时
+          </p>
+        </div>
       </div>
       <div className="space-y-4">
         {diaries.map(diary => (
