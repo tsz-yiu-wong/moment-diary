@@ -10,7 +10,6 @@ type Diary = {
   content: string;
   date: string;
   beijing_time: string;
-  italy_time: string;
   image_urls: string[] | null;
   created_at: string;
   user: {
@@ -31,9 +30,11 @@ export default function DiaryPage() {
   const [loading, setLoading] = useState(false);
   const [userNickname, setUserNickname] = useState("");
   const [newNickname, setNewNickname] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [timeUntilMeeting, setTimeUntilMeeting] = useState({ days: 0, hours: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [currentTime, setCurrentTime] = useState({ beijing: "", italy: "" });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [currentTime, setCurrentTime] = useState({ beijing: "", london: "" });
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
@@ -127,8 +128,8 @@ export default function DiaryPage() {
     const updateTime = () => {
       const now = new Date();
       const beijingTime = now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Shanghai" });
-      const italyTime = now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
-      setCurrentTime({ beijing: beijingTime, italy: italyTime });
+      const londonTime = now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
+      setCurrentTime({ beijing: beijingTime, london: londonTime });
 
       // 计算距离见面的时间（精确到小时）
       const meetingDate = new Date('2025-06-11T12:00:00+08:00');
@@ -238,6 +239,32 @@ export default function DiaryPage() {
     setShowImagePreview(true);
   };
 
+  const calculateLondonTime = (beijingTime: string, date: string) => {
+    if (!beijingTime || !date) return '';
+    // 将日记的日期（如 '2023/10/27'）和北京时间（如 '15:30'）
+    // 合成一个带时区信息的 ISO 格式字符串。
+    // '2023/10/27' -> '2023-10-27'
+    // '2023-10-27' + 'T' + '15:30' + ':00+08:00' -> '2023-10-27T15:30:00+08:00'
+    // 这样做可以确保 new Date() 正确地将这个时间解析为北京时间，无论浏览器在哪个时区。
+    const formattedDate = date.replace(/\//g, '-');
+    const isoString = `${formattedDate}T${beijingTime}:00+08:00`;
+    
+    const beijingDate = new Date(isoString);
+
+    // 如果日期无效，返回空字符串
+    if (isNaN(beijingDate.getTime())) {
+      return '';
+    }
+
+    // toLocaleTimeString 可以根据指定的时区（'Europe/London'）和日期，
+    // 自动判断是使用标准时间（GMT）还是夏令时（BST）进行转换和格式化。
+    return beijingDate.toLocaleTimeString("zh-CN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Europe/London"
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -251,16 +278,15 @@ export default function DiaryPage() {
 
       const now = new Date();
       const beijingTime = now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Shanghai" });
-      const italyTime = now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
+      const dateString = now.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" });
 
       const { error } = await supabase
         .from('diaries')
         .insert([
           {
             content,
-            date: now.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }),
+            date: dateString,
             beijing_time: beijingTime,
-            italy_time: italyTime,
             image_urls: imageUrls.length > 0 ? imageUrls : null,
             user_id: session.user.id
           }
@@ -394,9 +420,10 @@ export default function DiaryPage() {
           {userNickname || '设置昵称'}
         </button>
       </div>
+      {/* 
       <div className="flex justify-between text-sm text-amber-700 mb-2">
         <span>北京时间: {currentTime.beijing}</span>
-        <span>意大利时间: {currentTime.italy}</span>
+        <span>伦敦时间: {currentTime.london}</span>
       </div>
       <div className="bg-gradient-to-r from-amber-200 via-amber-100 to-amber-200 rounded-lg shadow p-2 mb-4 border border-amber-200">
         <div className="text-center">
@@ -405,6 +432,7 @@ export default function DiaryPage() {
           </p>
         </div>
       </div>
+      */}
       <div className="space-y-4">
         {diaries.map(diary => (
           <div key={diary.id} className="bg-white rounded-lg shadow p-4 border border-amber-100">
@@ -452,7 +480,7 @@ export default function DiaryPage() {
             )}
             <div className="flex justify-between items-center mt-2">
               <p className="text-sm text-amber-500">
-                {diary.date}，{diary.beijing_time}(CN)，{diary.italy_time}(IT)
+                {diary.date}，{diary.beijing_time}(CN)，{calculateLondonTime(diary.beijing_time, diary.date)}(UK)
               </p>
               {diary.isOwner && (
                 <button
